@@ -116,13 +116,15 @@ void TGA_Image::write (const string &file) const
   int xres = pixel.size1();
   int yres = pixel.size2();
 
-  const char header[18] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    xres%256, xres/256, yres%256, yres/256, 24, 32 };
+  const unsigned char header[18] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    static_cast<unsigned char>(xres%256), static_cast<unsigned char>(xres/256),
+    static_cast<unsigned char>(yres%256), static_cast<unsigned char>(yres/256),
+    24, 32 };
 
   ofstream out(file.c_str(), ios_base::out | ios_base::binary);
-  planck_assert(out, "could not create file " + file);
+  planck_assert(static_cast<bool>(out), "could not create file " + file);
 
-  out.write (header, 18);
+  out.write (reinterpret_cast<const char*>(header), 18);
 
   for (int j=0; j<yres; ++j)
     for (int i=0; i<xres; ++i)
