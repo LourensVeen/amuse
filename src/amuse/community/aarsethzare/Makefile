@@ -9,7 +9,7 @@ support/config.mk:
 
 
 # Building the code into a static library
-FFLAGS += $(AMUSE_MPI_CFLAGS) $(FORSOCKETS_CFLAGS)
+FFLAGS += $(AMUSE_MPI_CFLAGS) $(FORSOCKETS_CFLAGS) -std=legacy
 LDFLAGS +=
 LDLIBS += -lm $(AMUSE_MPI_LIBS) $(FORSOCKETS_LIBS)
 
