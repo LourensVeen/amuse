@@ -1,99 +1,87 @@
-# standard amuse configuration include
-# config.mk will be made after ./configure has run
-ifeq ($(origin AMUSE_DIR), undefined)
-  AMUSE_DIR := $(shell amusifier --get-amuse-dir)
-endif
--include ${AMUSE_DIR}/config.mk
-
-MPICXX   ?= openmpicxx
-
-CFLAGS   += -Wall -g -std=c++11 -Wno-strict-aliasing -Wno-reorder
-CXXFLAGS += $(CFLAGS) 
-LDFLAGS  += -lm $(MUSE_LD_FLAGS)
-
-CUDA_TK ?= /usr/local/cuda/
-CUDA_LIBS ?= -L$(CUDA_TK)/lib -L$(CUDA_TK)/lib64 -lcuda 
-
-#CXXFLAGS += -I$(CUDA_TK)/include
-LIBS += $(CUDA_LIBS) $(LDFLAGS) $(CUDA_LIBDIRS) -L/usr/lib64/nvidia $(SC_MPI_CLIBS)
-INCLUDES = -I$(CUDA_TK)/include $(SC_FLAGS)
-
-OBJS = libraryInterface.o
-
-CODELIB = src/bonsai/runtime/libbonsai_amuse.a
-
-DOWNLOAD_FROM_WEB = $(PYTHON) ./download.py
-
-DOWNLOAD_CODES?=1
-
-all: compile bonsai_worker 
-
-ifdef DOWNLOAD_CODES
-$(CODEDIR)/Makefile:
-	make -C . download
-else
-$(CODEDIR)/Makefile:
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@echo "DOWNLOAD_CODES is not set. Bonsai2 will not be downloaded and built."
-	@echo "If you do want Bonsai2, set DOWNLOAD_CODES to 1."
-	@echo "bash> export DOWNLOAD_CODES=1"
-	@echo "csh> setenv DOWNLOAD_CODES 1"
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@make -s --no-print-directory -C . raise_error
+ifneq (,$(filter-out clean distclean, $(MAKECMDGOALS)))
+include support/config.mk
 endif
 
-download:
-	$(RM) -Rf .pc
-	$(RM) -Rf src
-	mkdir src
-	$(DOWNLOAD_FROM_WEB)
-	$(PATCH_FILES)
 
-$(CUDA_TK):
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@echo "bonsai code"
-	@echo "------------"
-	@echo "CUDA_TK variable is not set to a valid path,"
-	@echo "please set the CUDA_TK variable to the directory"
-	@echo "where you installed CUDA"
-	@echo "the CUDA_TK directory must contain a bin directory with the <nvcc> executable"
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@make -s --no-print-directory -C . raise_error
+# Detecting dependencies
+support/config.mk:
+	cd support && ./configure
 
 
-compile: $(CUDA_TK) $(CODELIB)
-	cd src/bonsai/runtime
-	cmake -DUSE_MPI=0 -DUSE_MPIMT=0 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_THRUST=1 -DUSE_CUB=0
-	make -j
-	make
+# Downloading the code
+BONSAI_VERSION := 581fa8e70501ce85660c7eac0d61c0e5c5bece4a
 
+src:
+	mkdir -p src
+
+src/bonsai.tar.gz: | src
+	$(DOWNLOAD) https://github.com/treecode/Bonsai/archive/$(BONSAI_VERSION).tar.gz >$@
+
+src/bonsai: | src/bonsai.tar.gz
+	cd src && tar xf bonsai.tar.gz
+	rm -rf src/bonsai
+	mv src/Bonsai-$(BONSAI_VERSION) src/bonsai
+	cd src && patch -p0 <../bonsai_build.patch
+
+
+# Building the code into a static library
+CFLAGS += $(STOPCONDMPI_CFLAGS) $(OPENMP_CXXFLAGS) $(CUDA_FLAGS)
+LDFLAGS += $(CUDA_LDFLAGS)
+LDLIBS += $(STOPCONDMPI_LIBS) -lcuda -lcudart
+
+CODELIB = src/bonsai/build/libbonsai_amuse.a
+
+$(CODELIB): | src/bonsai
+	cd src/bonsai && cmake -DUSE_MPI=0 -DUSE_MPIMT=0 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_THRUST=1 -DUSE_CUB=0 -B build -S runtime
+	cd src/bonsai/build && make -j $(CPU_COUNT) bonsai_amuse
+
+
+# Building the workers
+
+bonsai_cuda_worker.h: interface.py
+	amusifier --type=h -i amuse.community.interface.stopping_conditions.StoppingConditionInterface interface.py Bonsai2Interface -o $@
+
+bonsai_cuda_worker.cc: interface.py
+	amusifier --type=c interface.py Bonsai2Interface -o $@
+
+bonsai_cuda_worker.o: bonsai_cuda_worker.cc bonsai_cuda_worker.h
+	$(MPICXX) -c -o $@ $(CFLAGS) $<
+
+bonsai_cuda_worker: libraryInterface.o bonsai_cuda_worker.o $(CODELIB)
+	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
+
+libraryInterface.o: libraryInterface.cu bonsai_cuda_worker.h | src/bonsai
+	$(NVCC) -c -Xcompiler "$(CFLAGS)" $<
+
+
+# Which packages contain which workers?
+amuse-bonsai2-cuda_contains: bonsai_cuda_worker
+
+
+# Building and installing packages
+develop-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install -e packages/$*
+
+install-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install packages/$*
+
+package-%: %_contains
+	python3 -m pip install -vv --no-cache-dir --no-deps --no-build-isolation --prefix ${PREFIX} packages/$*
+
+test-%:
+	cd packages/$* && pytest -v
+
+
+# Cleaning up
+.PHONY: clean
 clean:
-	$(RM) -f *.so *.o *.pyc worker_code.cc worker_code.h 
-	$(RM) *~ bonsai_worker worker_code.cc worker_code-sockets.cc bonsai_worker_sockets
-	make -C src clean
+	rm -rf src/bonsai/build
+	rm -rf *.o *worker*
 
-#$(CODELIB):
-#	make -C src all CXX="$(MPICXX)" CUDA_TK="$(CUDA_TK)" LD="$(MPICXX)" LDFLAGS="$(LIBS)" INCLUDES="$(INCLUDES)"
-
-worker_code.cc: interface.py
-	$(CODE_GENERATOR) --type=c interface.py BonsaiInterface2 -o $@
-
-worker_code.h: interface.py
-	$(CODE_GENERATOR) --type=h -i amuse.community.interface.stopping_conditions.StoppingConditionInterface  interface.py BonsaiInterface2 -o $@
-
-
-bonsai_worker: worker_code.cc worker_code.h $(CODELIB) $(OBJS)
-	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(SC_MPI_CLIBS) $(INCLUDES) $< $(OBJS) $(CODELIB) $(LIBS)
-
-.cpp.o: $<
-	$(MPICXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $< 
-.cc.o: $<
-	$(MPICXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $< 
+.PHONY: distclean
+distclean: clean
+	rm -f support/config.mk support/config.log support/config.status
+	rm -rf support/autom4te.cache
+	rm -rf src

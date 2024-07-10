@@ -9,10 +9,10 @@ class Bonsai2Interface(CodeInterface, LiteratureReferencesMixIn, GravitationalDy
         .. [#] ADS:2012JCoPh.231.2825B (Bedorf J., Gaburov E., Portegies Zwart S., 2012, JCoPh, 231, 2825)
     """
 
-    include_headers = ['worker_code.h', 'stopcond.h']
+    include_headers = ['bonsai_cuda_worker.h', 'stopcond.h']
     
     def name_of_worker(self,mode):
-        return 'bonsai_worker'
+        return 'bonsai_cuda_worker'
     
     def __init__(self, mode=None, **options):
         CodeInterface.__init__(self, name_of_the_worker = self.name_of_worker(mode), **options)

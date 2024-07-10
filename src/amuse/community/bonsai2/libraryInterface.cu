@@ -1,4 +1,4 @@
-#include "src/runtime/include/octree.h"
+#include "src/bonsai/runtime/include/octree.h"
 
 
 #include <map>
@@ -10,7 +10,7 @@
   // AMUSE STOPPING CONDITIONS SUPPORT
   #include <stopcond.h>
 #endif  
-#include "worker_code.h"
+#include "bonsai_cuda_worker.h"
 
 
 octree *bonsai;
