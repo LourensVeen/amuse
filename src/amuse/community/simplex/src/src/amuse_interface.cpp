@@ -2,7 +2,7 @@
 #include "configfile.h"
 
 #include "amuse_interface.h"
-#include "../../worker_code.h"
+#include "../../simplex_worker.h"
 
 #ifndef M_PI
 #define M_PI           3.14159265358979323846

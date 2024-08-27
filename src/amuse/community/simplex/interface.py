@@ -18,7 +18,7 @@ class SimpleXInterface(CodeInterface, CommonCodeInterface, LiteratureReferencesM
         .. [#] ADS:2010A&A...515A..79P (Paardekooper, J.-P., Kruip, C.J.H., Icke, V. 2010, A&A, 515, A79 (SimpleX2))
         .. [#] ADS:2006PhRvE..74b6704R (Ritzerveld, J., & Icke, V. 2006, Phys. Rev. E, 74, 26704 (SimpleX))
     """
-    include_headers=['worker_code.h']
+    include_headers=['simplex_worker.h']
     
     def __init__(self, **kwargs):
         CodeInterface.__init__(self, name_of_the_worker = "simplex_worker", **kwargs)
