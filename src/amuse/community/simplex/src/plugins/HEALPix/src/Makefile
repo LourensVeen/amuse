@@ -1,5 +1,7 @@
 MPICXX ?= mpicxx
 
+CXXCFLAGS += -std=c++98
+
 SPHERE_HEADERS= alm.h alm_fitsio.h \
 	alm_powspec_tools.h powspec.h \
 	powspec_fitsio.h \
