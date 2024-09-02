@@ -37,7 +37,7 @@ STAR_WORK_OBJS = \
    $(MESA_MAKE_DIR)/run_star_support.o $(MESA_MAKE_DIR)/run_star_extras.o \
    $(MESA_MAKE_DIR)/calibrate.o $(MESA_MAKE_DIR)/isochrone.o $(MESA_MAKE_DIR)/$(PGSTAR_OBJS) \
    $(MESA_MAKE_DIR)/create_zams.o $(MESA_MAKE_DIR)/sample_zams.o \
-   $(MESA_MAKE_DIR)/run_star.o 
+   $(MESA_MAKE_DIR)/run_star.o
 
 ZAMS_DIR = ./data/input/star_data/starting_models
 ZAMS_DATA = zams_z20m3.data
@@ -69,6 +69,15 @@ distclean: clean
 	$(RM) -Rf src.*
 	$(RM) -Rf .pc
 
+build_ndiff:
+	cd $(MESA_DIR)/utils;\
+	rm -rf ndiff-2.00;\
+	tar xvf ndiff-2.00.tar.gz;\
+	cd ndiff-2.00;\
+	cp ../../../../patches/ndiff_configure ./configure;\
+	./configure;\
+	make
+
 $(ZAMS_DATA):
 	gunzip -c $(ZAMS_DATA).gz > $(ZAMS_DIR)/$(ZAMS_DATA)
 
@@ -78,7 +87,7 @@ mesa_worker:	worker_code.f90 interface.o $(STAR_WORK_OBJS)
 worker_code.f90: interface.py
 	$(CODE_GENERATOR) --type=f90 interface.py MESAInterface -o $@
 
-$(MESA_LIB):  $(MESA_DIR)/install
+$(MESA_LIB):  $(MESA_DIR)/install build_ndiff
 	cp -f ./install $(MESA_DIR)
 	cp -f ./test_jina.f $(MESA_DIR)/jina/test/src/test_jina.f
 	cd $(MESA_DIR); ./install MPIFC="$(MPIFC) $(FCFLAGS)" OPENMP_FCFLAGS=
