@@ -1,0 +1,29 @@
+# Compilers
+CXX = @CXX@
+
+MPICXX = @MPICXX@
+
+CPU_COUNT = @CPU_COUNT@
+
+# Tools
+AR = @AR@
+RANLIB = @RANLIB@
+
+# General flags and libraries
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+
+LIBS = @LIBS@
+
+
+# AMUSE framework libraries
+STOPCOND_CFLAGS = @STOPCOND_CFLAGS@
+STOPCOND_LIBS = @STOPCOND_LIBS@
+
+
+# External dependencies
+CUDA_TK = @CUDA_TK@
+NVCC = @NVCC@
+CUDA_FLAGS = @CUDA_FLAGS@
+CUDA_LDFLAGS = @CUDA_LDFLAGS@
+

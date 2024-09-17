@@ -1,4 +1,4 @@
-#include "interface.h"
+#include "hacs64_worker.h"
 #include <stopcond.h>
 #include <iostream>
 

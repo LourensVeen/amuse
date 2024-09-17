@@ -4,8 +4,8 @@ from amuse.community.interface.gd import GravitationalDynamicsInterface
 
 # *** This script, together with the defaults in
 # *** GravitationalDynamicsInterface, will be used to generate both
-# *** the header file interface.h and the stub interface.cc.  Since
-# *** interface.cc has been  hand-coded to implement the details,
+# *** the header file hacs64_worker.h and the stub hacs64_worker.cc.  Since
+# *** hacs64_worker.cc has been  hand-coded to implement the details,
 # *** MAKE SURE TO SAVE IT SOMEWHERE, as build.py can overwrite it!
 
 class Hacs64Interface(CodeInterface, GravitationalDynamicsInterface, StoppingConditionInterface):
@@ -16,7 +16,7 @@ class Hacs64Interface(CodeInterface, GravitationalDynamicsInterface, StoppingCon
 
     # Interface specification.
 
-    include_headers = ['interface.h', 'stopcond.h']
+    include_headers = ['hacs64_worker.h', 'stopcond.h']
 
     MODE_GPU = 'gpu'
     MODE_CPU = 'cpu'
@@ -43,7 +43,7 @@ class Hacs64Interface(CodeInterface, GravitationalDynamicsInterface, StoppingCon
         if mode == self.MODE_CPU:
             return 'hacs64_worker'
         elif mode == self.MODE_GPU:
-            return 'hacs64_worker_gpu'
+            return 'hacs64_cuda_worker'
         else:
             return 'hacs64_worker'
     

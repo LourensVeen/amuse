@@ -1,100 +1,78 @@
-
-# Makefile to build the worker code.  First draft was auto-generated;
-# subsequent versions are hand-coded, so save a copy.  Note that
-# all compiles must use MPICXX, not CXX.
-
-# standard amuse configuration include
-# config.mk will be made after ./configure has run
-ifeq ($(origin AMUSE_DIR), undefined)
-  AMUSE_DIR := $(shell amusifier --get-amuse-dir)
+ifneq (,$(filter-out clean distclean, $(MAKECMDGOALS)))
+include support/config.mk
 endif
--include ${AMUSE_DIR}/config.mk
-
-ALL	 = hacs64_worker
-OPT	  = -I$(AMUSE_DIR)/lib/stopcond 
-
-MPICXX   ?= mpicxx
-
-CFLAGS   += $(OPT)
-CFLAGS   += -I./src -I./src/ON_neib
-CXXFLAGS += $(CFLAGS)  
-LDFLAGS  += -L$(AMUSE_DIR)/lib/stopcond -lstopcond -lm $(MUSE_LD_FLAGS)
-
-CUDA_TK  ?= /usr/local/cuda
-
-CUDA_LIBDIRS ?= -L$(CUDA_TK)/lib -L$(CUDA_TK)/lib64
-CUDA_LIBS ?= $(CUDA_LIBDIRS) -lcudart
-
-LDFLAGS_GPU =	$(LDFLAGS) \
-		$(CUDA_LIBS) \
-
-CXXFLAGS += -I $(CUDA_TK)/include
 
 
-OBJS = interface.o
-SRCDIR = src
-BUILDDIRCPU = build_cpu
-CXXFLAGS += -I../src -I../src/ON_neib
-
-NVCCFLAGS ?= $(NVCC_FLAGS)
-
-CODELIB = src/libhacs64gpu.a
-CODELIBCPU = $(BUILDDIRCPU)/libhacs64cpu.a
-
-AMUSE_DIR ?= ../../../..
+# Detecting dependencies
+support/config.mk:
+	cd support && ./configure
 
 
-all: $(ALL)
+# Building the code into a static library
+CXXFLAGS += $(STOPCOND_CFLAGS) -Isrc -Isrc/ON_neib
 
-save:
-	@ for f in Makefile interface.py interface.cc src/Makefile; do \
-		cp -p $$f $$f.save; done
+LDLIBS += -lm $(STOPCOND_LIBS)
 
-$(CUDA_TK):
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@echo "hacs64 code"
-	@echo "------------"
-	@echo "CUDA_TK variable is not set to a valid path,"
-	@echo "please set the CUDA_TK variable to the directory"
-	@echo "where you installed CUDA"
-	@echo "the CUDA_TK directory must contain a bin directory with the <nvcc> executable"
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@make -s --no-print-directory -C . raise_error
+CODELIB = src/libhacs64cpu.a
+CODELIB_CUDA = src/libhacs64gpu.a
 
 
 $(CODELIB):
-	make -C src all CXX='$(MPICXX)'
+	$(MAKE) -C src -f ../src/Makefile -j $(CPU_COUNT) cpu CXX=$(MPICXX)
+
+$(CODELIB_CUDA):
+	$(MAKE) -C src -f ../src/Makefile -j $(CPU_COUNT) all CXX=$(MPICXX)
 
 
-$(BUILDDIRCPU)/Makefile: $(SRCDIR)/Makefile 
-	-mkdir $(BUILDDIRCPU) 
-	cp $(SRCDIR)/Makefile $(BUILDDIRCPU)/Makefile
+# Building the workers
+hacs64_worker.h: interface.py
+	amusifier --type=h interface.py Hacs64Interface -o $@
 
-$(CODELIBCPU): $(BUILDDIRCPU)/Makefile
-	make -C $(BUILDDIRCPU) cpu CXX='$(MPICXX)' VPATH=../src
+hacs64_worker.cc: interface.py
+	amusifier --type=c interface.py Hacs64Interface -o $@
 
-worker_code.cc: interface.py
-	$(CODE_GENERATOR) --type=c interface.py Hacs64Interface -o $@
-	
-interface.h: interface.py
-	$(CODE_GENERATOR) --type=h  -i amuse.community.interface.stopping_conditions.StoppingConditionInterface interface.py Hacs64Interface -o $@
+hacs64_worker.o: hacs64_worker.cc hacs64_worker.h
+	$(MPICXX) -c -o $@ $(CXXFLAGS) -Isrc -Isrc/ON_neib $<
 
-hacs64_worker: worker_code.cc interface.h $(CODELIBCPU) $(OBJS)
-	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) worker_code.cc $(OBJS) $(CODELIBCPU) -o $@  $(LDFLAGS)  $(LIBS)
+hacs64_worker: hacs64_worker.o interface.o $(CODELIB)
+	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-hacs64_worker_gpu:  $(CUDA_TK) worker_code.cc interface.h $(CODELIB) $(OBJS)
-	$(MPICXX) $(CXXFLAGS) $(LDFLAGS) worker_code.cc $(OBJS) $(CODELIB) -o $@ $(LDFLAGS_GPU) -DGPU  $(LIBS)
+hacs64_cuda_worker: hacs64_worker.o interface.o $(CODELIB_CUDA)
+	$(MPICXX) -o $@ $(LDFLAGS) $(CUDA_LDFLAGS) $^ $(LDLIBS) -lcudart
 
-%.o: %.cc
-	$(MPICXX) $(CXXFLAGS) -c -o $@ $< 
+interface.o: interface.cc hacs64_worker.h
+	$(MPICXX) -o $@ -c $(CXXFLAGS) $<
 
+
+# Which packages contain which workers?
+amuse-hacs64_contains: hacs64_worker
+
+amuse-hacs64-cuda_contains: hacs64_cuda_worker
+
+
+# Building and installing packages
+develop-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install -e packages/$*
+
+install-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install packages/$*
+
+package-%: %_contains
+	python3 -m pip install -vv --no-cache-dir --no-deps --no-build-isolation --prefix ${PREFIX} packages/$*
+
+test-%:
+	cd packages/$* && pytest
+
+
+# Cleaning up
+.PHONY: clean
 clean:
-	$(RM) -r -f *.so *.dSYM *.o *.mpio *.pyc worker_code.cc interface.h 
-	$(RM) -f *~ hacs64_worker hacs64_worker_cpu worker_code.cc
-	$(RM) -f worker_code-sockets.cc
-	$(RM) -rf $(BUILDDIRCPU)
-	make -C src clean
+	$(MAKE) -C src clean
+	rm -rf *.o *worker*
+
+.PHONY: distclean
+distclean: clean
+	rm -f support/config.mk support/config.log support/config.status
+	rm -rf support/autom4te.cache

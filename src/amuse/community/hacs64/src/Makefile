@@ -10,8 +10,8 @@ CUDAPATH       := /usr/local/cuda
 CUDAINCLUDE    := -I$(CUDAPATH)/include
 #CUDASDKINCLUDE := -I$(CUDASDK)/common/inc
 
-#NVCCFLAGS := -arch=sm_20 -O4 -g  $(CUDAINCLUDE) $(CUDASDKINCLUDE) -I./ -Xptxas -v,-abi=no 
-NVCCFLAGS := -arch=sm_20 -O4 -g  $(CUDAINCLUDE)  -I./ -Xptxas -v,-abi=no 
+#NVCCFLAGS := -O4 -g  $(CUDAINCLUDE) $(CUDASDKINCLUDE) -I./ -Xptxas -v,-abi=no 
+NVCCFLAGS := -O4 -g  $(CUDAINCLUDE)  -I./
 # NVCCFLAGS += -maxrregcount=32
 NVCCFLAGS += -Xcompiler="-Wall"
 #NVCCFLAGS += -Xopencc="-O0"

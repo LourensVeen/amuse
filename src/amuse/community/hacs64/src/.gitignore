@@ -1,0 +1,4 @@
+integrate-cpu
+integrate-gpu
+**/*.cu_o
+
