@@ -1,79 +1,80 @@
-# standard amuse configuration include
-# config.mk will be made after ./configure has run
-ifeq ($(origin AMUSE_DIR), undefined)
-  AMUSE_DIR := $(shell amusifier --get-amuse-dir)
-endif
--include ${AMUSE_DIR}/config.mk
-
-MPICXX ?= openmpicxx
-
-CODEPATH = src/octgrav_v1.7d
-CODELIB = $(CODEPATH)/liboctgrav.a 
-
-
-CUDA_TK  ?= /disks/koppoel1/CUDA23/cuda
-
-MUSE_INCLUDE_DIR = -I$(CODEPATH) -I$(CUDA_TK)/include 
-
-CXXFLAGS+= $(MUSE_INCLUDE_DIR) 
-
-OBJS = integrator.o interface.o 
-
-ifeq ($(origin AMUSE_DIR), undefined)
-  AMUSE_DIR := $(shell amusifier --get-amuse-dir)
+ifneq (,$(filter-out clean distclean, $(MAKECMDGOALS)))
+include support/config.mk
 endif
 
-CUDA_LIBDIRS ?= -L$(CUDA_TK)/lib -L$(CUDA_TK)/lib64
-CUDA_LIBS ?= -lcudart
 
-LIBS += $(CUDA_LIBDIRS) $(CUDA_LIBS) 
+# Detecting dependencies
+support/config.mk:
+	cd support && ./configure
 
-$(warning make does: : $(MAKE))
 
-all:  compile octgrav_worker
+# TODO: remove
+CPU_COUNT := 1
 
-$(CUDA_TK):
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@echo "octgrav code"
-	@echo "------------"
-	@echo "CUDA_TK variable is not set to a valid path,"
-	@echo "please set the CUDA_TK variable to the directory"
-	@echo "where you installed CUDA"
-	@echo "the CUDA_TK directory must contain a bin directory with the <nvcc> executable"
-	@echo ""
-	@echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	@echo ""
-	@make -s --no-print-directory -C . raise_error
 
-compile: $(CUDA_TK) octgrav 
+# Building the code into a static library
+DEPFLAGS += $(STOPCONDMPI_CFLAGS) $(CUDA_FLAGS)
 
-octgrav: 
-	$(MAKE) -C $(CODEPATH)
+CFLAGS += -std=c++11 $(DEPFLAGS) -Isrc/octgrav_v1.7d
+LDFLAGS += $(CUDA_LDFLAGS)
+LDLIBS += $(STOPCONDMPI_LIBS) 
 
-worker_code.cc: interface.py
-	$(CODE_GENERATOR) --type=c interface.py OctgravInterface -o $@ 
+CODELIB = src/octgrav_v1.7d/liboctgrav.a
 
-worker_code.h: interface.py
-	$(CODE_GENERATOR) --type=h -i amuse.community.interface.stopping_conditions.StoppingConditionInterface interface.py OctgravInterface -o $@
 
-octgrav_worker: worker_code.cc worker_code.h $(OBJS)
-	$(MPICXX) $(CXXFLAGS) $(SC_FLAGS) $(LDFLAGS) $< $(OBJS) $(CODELIB) -o $@ $(SC_MPI_CLIBS) $(LIBS)
+$(CODELIB):
+	$(MAKE) -C src/octgrav_v1.7d -j $(CPU_COUNT) CXX="$(CXX)" CUDA_TK="$(CUDA_TK)" NVCC="$(NVCC)"
 
+
+# Building the workers
+octgrav_worker.h: interface.py
+	amusifier --type=h interface.py OctgravInterface -o $@
+
+octgrav_worker.cc: interface.py
+	amusifier --type=c interface.py OctgravInterface -o $@
+
+octgrav_worker.o: octgrav_worker.cc octgrav_worker.h
+	$(MPICXX) -c -o $@ $(CFLAGS) $<
+
+octgrav_cuda_worker: interface.o integrator.o octgrav_worker.o $(CODELIB)
+	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
+
+%.o: %.cc
+	$(MPICXX) -o $@ -c $(CFLAGS) $<
+
+%.o: %.cpp
+	$(MPICXX) -o $@ -c $(CFLAGS) $<
+
+interface.o: octgrav_worker.h
+
+
+# Which packages contain which workers?
+amuse-octgrav-cuda_contains: octgrav_cuda_worker
+
+
+# Building and installing packages
+develop-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install -e packages/$*
+
+install-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install packages/$*
+
+package-%: %_contains
+	python3 -m pip install -vv --no-cache-dir --no-deps --no-build-isolation --prefix ${PREFIX} packages/$*
+
+test-%:
+	cd packages/$* && pytest
+
+
+# Cleaning up
+.PHONY: clean
 clean:
-	rm -f *.so *.o *.pyc worker_code.cc worker_code.h
-	rm -rf *.dSYM
-	$(RM) worker_code *~ octgrav_worker
-	$(RM) worker_code-sockets.cc octgrav_worker_sockets
-	$(MAKE) -C $(CODEPATH) clean	
+	$(MAKE) -C src/octgrav_v1.7d clean
+	rm -rf *.o *worker*
 
+.PHONY: distclean
 distclean: clean
-
-.cc.o: $<
-	$(CXX) $(CXXFLAGS) $(SC_FLAGS) -c -o $@ $< 
-
-.C.o: $<
-	$(CXX) $(CXXFLAGS) $(SC_FLAGS) -c -o $@ $<
-
-.PHONY: octgrav
+	rm -f support/config.mk support/config.log support/config.status
+	rm -rf support/autom4te.cache

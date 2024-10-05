@@ -15,10 +15,10 @@ class OctgravInterface(
         .. [#] ... "A gravitational tree code on graphics processing units: Implementation in CUDA"
     """
 
-    include_headers = ['interface.h', 'parameters.h', 'worker_code.h', 'local.h', 'stopcond.h']
+    include_headers = ['interface.h', 'parameters.h', 'octgrav_worker.h', 'local.h', 'stopcond.h']
 
     def __init__(self, convert_nbody = None, **options):
-        CodeInterface.__init__(self, name_of_the_worker="octgrav_worker", **options)
+        CodeInterface.__init__(self, name_of_the_worker="octgrav_cuda_worker", **options)
         """
         self.parameters = parameters.Parameters(self.parameter_definitions, self)
         if convert_nbody is None:

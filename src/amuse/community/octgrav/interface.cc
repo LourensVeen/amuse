@@ -1,6 +1,6 @@
 #include <iostream>
 #include "interface.h"
-#include "worker_code.h"
+#include "octgrav_worker.h"
 #include <vector>
 #include <algorithm>
 #include <string>
