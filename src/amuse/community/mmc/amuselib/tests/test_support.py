@@ -1,11 +1,11 @@
 from amuse.community import *
-from amuse.test.amusetest import TestWithMPI
+from amusetest import TestWithMPI
 
-from .interface import supportInterface
+from amuse.community.mmc.amuselib.interface import supportInterface
 import numpy as np
 
 class supportInterfaceTests(TestWithMPI):
-    
+
     def test1(self):
         instance = supportInterface()
         print(instance.add([1,1,1,1,1],[1,1,1,1,1])['sum'])
@@ -20,5 +20,5 @@ class supportInterfaceTests(TestWithMPI):
         instance.stop()
 
 
-    
-    
+
+

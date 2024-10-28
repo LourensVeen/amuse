@@ -1,52 +1,80 @@
-ifeq ($(origin AMUSE_DIR), undefined)
-  AMUSE_DIR := $(shell amusifier --get-amuse-dir)
+ifneq (,$(filter-out clean distclean, $(MAKECMDGOALS)))
+include support/config.mk
 endif
--include $(AMUSE_DIR)/config.mk
 
-MPIFC  ?= mpif90
-MPIF90 ?= $(MPIFC)
-PYTHON ?= python
-FC      = $(MPIFC)
 
-FCFLAGS   += -fno-automatic
-LDFLAGS  += -lm $(MUSE_LD_FLAGS)
+# Detecting dependencies
+support/config.mk:
+	cd support && ./configure
 
-OBJS = interface.o
+
+# Building the code into a static library
+DEPFLAGS += $(AMUSE_MPI_CFLAGS)
+DEPFLAGS += $(FORSOCKETS_CFLAGS)
+
+FFLAGS += $(DEPFLAGS)
+
+LDFLAGS +=
+
+LDLIBS += -lm $(AMUSE_MPI_LIBS)
+LDLIBS += $(FORSOCKETS_LIBS)
+
 
 CODELIB = src/libmmc.a
 
-MMC_DATA_DIR = ../../../../data/mmc
+$(CODELIB): | src
+	$(MAKE) -C src -j $(CPU_COUNT)
+	$(MAKE) -C amuselib -j $(CPU_COUNT) support_worker
 
-SRCINC = -I./src
 
-all: mmc_worker
+# Building the workers
+worker_code.f90: interface.py
+	amusifier --type=f90 interface.py mmcInterface -o $@
 
-clean:
-	$(RM) -f *.o *.pyc worker_code.f90  
-	$(RM) -f *~ worker_code worker_code.f90 interface.f90
-	$(RM) -f *.tmp mmc_worker
-	$(RM) -f $(MMC_DATA_DIR)/*.dat
-	$(RM) -f mmc.mod
-	$(RM) -f src/amuse_interface2.f
-	-make -C src clean
-	-make -C amuselib clean
-
-distclean: clean
-	$(RM) -f mmc.mod
-	
-$(CODELIB): src/amuse_interface2.f
-	make -C src 
-	make -C amuselib
+worker_code.o: worker_code.f90
+	$(MPIFC) -c $(FFLAGS) $<
 
 interface.f90 src/amuse_interface2.f: makeinterface.py
-	$(PYTHON) makeinterface.py
+	python makeinterface.py
 
-worker_code.f90: interface.py
-	$(CODE_GENERATOR) --type=f90 interface.py mmcInterface -o $@
+interface.o: interface.f90
+	$(MPIFC) -c -o $@ $(FFLAGS) -Isrc $<
 
-mmc_worker: worker_code.f90 $(OBJS) $(CODELIB) 
-	$(MPIFC) $(FCFLAGS) $(FS_FLAGS) $(LDFLAGS) $(OBJS) $(SRCINC) $< $(CODELIB) $(FS_LIBS) -o $@  $(LIBS)
+mmc_worker: interface.o worker_code.o $(CODELIB)
+	$(MPIFC) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-interface.o: interface.f90 
-	$(FC) $(FCFLAGS) $(SRCINC) -c -o $@ $<
+
+# Which packages contain which workers?
+amuse-mmc_contains: mmc_worker
+
+
+# Building and installing packages
+develop-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install -e packages/$*
+
+install-%: %_contains
+	support/shared/uninstall.sh $*
+	python -m pip install packages/$*
+
+package-%: %_contains
+	python3 -m pip install -vv --no-cache-dir --no-deps --no-build-isolation --prefix ${PREFIX} packages/$*
+
+test-%:
+	cd packages/$* && pytest
+
+
+# Cleaning up
+.PHONY: clean
+clean:
+	$(MAKE) -C src clean
+	$(MAKE) -C amuselib distclean
+	rm -rf *.o *worker* mmc.mod
+
+.PHONY: distclean
+distclean: clean
+	#-$(MAKE) -C src clean
+	#-$(MAKE) -C amuselib distclean
+	rm -f support/config.mk support/config.log support/config.status
+	rm -rf support/autom4te.cache
 

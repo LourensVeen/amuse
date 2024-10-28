@@ -91,7 +91,7 @@ class mmcInterface(CodeInterface, PolarSupport, CodeWithDataDirectories):
             Error happened during initialization, this error needs to be further specified by every code implemention
         """
         return function
-    
+
     @legacy_function
     def recommit_particles():
         """
@@ -109,7 +109,7 @@ class mmcInterface(CodeInterface, PolarSupport, CodeWithDataDirectories):
             Error happened during initialization, this error needs to be further specified by every code implemention
         """
         return function
-    
+
     @legacy_function
     def test_sort_routine():
         function = LegacyFunctionSpecification()
