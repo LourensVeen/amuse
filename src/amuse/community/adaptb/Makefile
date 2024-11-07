@@ -24,8 +24,7 @@ CODELIB = src/libadaptb.a
 
 
 $(CODELIB):
-	$(MAKE) -C src -j $(CPU_COUNT) all
-
+	$(MAKE) -C src -j $(CPU_COUNT) all CXX='$(MPICXX)'
 
 # Building the workers
 adaptb_worker.h: interface.py
