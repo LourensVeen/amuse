@@ -32,8 +32,8 @@ class Parameters(object):
             raise Exception("Duplicate parameters detected")
 
     def __getattr__(self, name):
-        # if name.startswith('__'):
-        #    return object.__getattribute__(self, name)
+        if name.startswith('__'):
+           return object.__getattribute__(self, name)
         if not name in self._mapping_from_name_to_definition:
             raise exceptions.CoreException(
                 f"tried to get unknown parameter '{name}' "
