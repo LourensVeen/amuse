@@ -263,6 +263,7 @@ print_test_failure() {
     log_file="$2"
 
     printf '\n%b\n\n' "${COLOR_RED}${package} failed its tests.${COLOR_END}"
+    printf '%s\n\n' "Please check that it is installed and available. If it is, then..."
     print_getting_help
 }
 

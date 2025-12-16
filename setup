@@ -185,16 +185,13 @@ run_test() {
                 test_all
                 ;;
             amuse-framework | framework )
-                check_package_installed_for_test amuse-framework
                 test_framework
                 ;;
             amuse-ext | ext )
-                check_package_installed_for_test amuse-framework
                 test_amuse_ext
                 ;;
             * )
                 target="$(normalise_package_name ${target})"
-                check_package_installed_for_test "${target}"
                 forward_to_package "test" "${target}"
                 ;;
         esac

@@ -19,22 +19,6 @@ ensure_pytest() {
 }
 
 
-# Check whether a package is installed and can therefore be tested
-#
-# If not, print an error message and quit.
-#
-check_package_installed_for_test() {
-    package="$1"
-    installed_name=$(installed_package_name "${package}")
-
-    if ! is_subset "${installed_name}" "${INSTALLED_PACKAGES}" ; then
-        printf '\n%s\n' "Package ${package} is not installed, so we cannot test it."
-        printf '\n%s\n' "Please install the package first using ./setup install ${package}, then try again."
-        exit 1
-    fi
-}
-
-
 # Run tests for the AMUSE framework
 #
 test_framework() {
