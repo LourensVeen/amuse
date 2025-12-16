@@ -12,16 +12,10 @@ is_installed() {
 
 # Detect any active Conda or venv environments
 #
-# This uses the following variables:
-#
-# CONDA_LIST - output of conda list, as set by the configure script, for improved
-#              performance.
-#
 # This sets the following variables only if an environment is detected:
 #
 # ENV_TYPE - either "virtualenv" or "conda"
 # ENV_NAME - name of the environment
-# ENV_LIBRARY_PATH - location of /lib directory
 #
 detect_environments() {
     if [ "a${VIRTUAL_ENV}" != "a" ] ; then
@@ -42,6 +36,9 @@ detect_environments() {
 # Conda environment, that they were installed using conda and not pip.
 #
 # This uses the following variables:
+#
+# CONDA_LIST - output of conda list, as set by the configure script, for improved
+#              performance.
 #
 # ENV_TYPE - see detect_environments()
 #
@@ -195,7 +192,6 @@ find_packages() {
 #
 # ENV_TYPE - either "virtualenv" or "conda"
 # ENV_NAME - name of the environment
-# ENV_LIBRARY_PATH - location of /lib directory
 # HAVE_PYPI_PIP - if pip is installed from PyPI in a conda environment
 # HAVE_PYPI_WHEEL - if wheel is installed from PyPI in a conda environment
 # HAVE_PIP - if pip is installed correctly for the current environment
