@@ -31,7 +31,7 @@ src/fpx3.tar.gz: | src
 src/fpx3_deps: | src
 	$(DOWNLOAD) https://raw.githubusercontent.com/rhdtownsend/sdk2/897655920d1375d63df9e21b58485d6d3d62b342/package/fpx3/files/fpx3_deps >$@
 
-src/mesa-$(MESA_VERSION).zip:
+src/mesa-$(MESA_VERSION).zip: | src
 	$(DOWNLOAD) https://zenodo.org/record/4311514/files/mesa-$(MESA_VERSION).zip >$@
 
 
