@@ -119,7 +119,7 @@ $(MESA_DIR)/utils/makedepf90-2.8.8: | $(MESA_DIR)
 
 src/bin/makedepf90: | $(MESA_DIR)/utils/makedepf90-2.8.8 src/bin
 	cd $(MESA_DIR)/utils/makedepf90-2.8.8 && ./configure
-	cd $(MESA_DIR)/utils/makedepf90-2.8.8 && $(MAKE)
+	cd $(MESA_DIR)/utils/makedepf90-2.8.8 && $(MAKE) CFLAGS="$(CFLAGS) -std=gnu11"
 	cp $(MESA_DIR)/utils/makedepf90-2.8.8/makedepf90 $@
 
 
