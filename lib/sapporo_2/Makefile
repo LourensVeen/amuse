@@ -83,7 +83,7 @@ uninstall:
 
 .PHONY: clean
 clean:
-	$(MAKE) -C $(SRCDIR) clean
+	-$(MAKE) -C $(SRCDIR) clean
 	rm -f support/config.mk support/config.log support/config.status
 
 .PHONY: distclean
