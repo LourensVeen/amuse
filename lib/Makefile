@@ -9,6 +9,13 @@ AMUSE_LIBS = $(filter-out Makefile sapporo_light, $(wildcard *))
 	$(MAKE) -C sapporo_light $*
 
 
+# We build sapporo2 separately and only on demand, because it needs CUDA and we
+# may not have that.
+.PHONY: %-sapporo2
+%-sapporo2:
+	$(MAKE) -C sapporo_2 $*
+
+
 .PHONY: install uninstall clean distclean
 install uninstall clean distclean: $(AMUSE_LIBS)
 
