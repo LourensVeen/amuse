@@ -1,5 +1,5 @@
 .PHONY: Makefile
-AMUSE_LIBS = $(filter-out Makefile sapporo_light, $(wildcard *))
+AMUSE_LIBS = $(filter-out Makefile sapporo_light sapporo_2, $(wildcard *))
 
 
 # We build sapporo_light separately and only on demand, because it needs CUDA and we
