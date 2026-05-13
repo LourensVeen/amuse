@@ -114,7 +114,7 @@ src/bin/fpx3_deps: | src/fpx3_deps
 
 $(MESA_DIR)/utils/makedepf90-2.8.8: | $(MESA_DIR)
 	cd $(MESA_DIR)/utils && tar xzf makedepf90-2.8.8.tar.gz -m
-    touch $(MESA_DIR)/utils/makedepf90-2.8.8/configure
+	touch $(MESA_DIR)/utils/makedepf90-2.8.8/configure
 
 src/bin/makedepf90: | $(MESA_DIR)/utils/makedepf90-2.8.8 src/bin
 	cd $(MESA_DIR)/utils/makedepf90-2.8.8 && ./configure
@@ -144,7 +144,7 @@ MESA_TOOLS := src/bin/fpx3 src/bin/fpx3_deps src/bin/makedepf90 src/bin/ndiff
 MESA_ENV := MESA_DIR=$(MESA_DIR) FC=$(FC) MPIFC=$(MPIFC)
 MESA_ENV += CC=$(CC) MPICC=$(MPICC) OPENMP_FCFLAGS=$(OPENMP_FCFLAGS)
 MESA_ENV += LAPACK_LIBS="$(LAPACK_LIBS)" BLAS_LIBS="$(BLAS_LIBS)"
-MESA_ENV += HDF5_FFLAGS="$(HDF5_FFLAGS)" HDF5_LDFLAGS="$(HDF5_LDFLAGS)"
+MESA_ENV += HDF5_FFLAGS="$(HDF5_FCFLAGS)" HDF5_LDFLAGS="$(HDF5_LDFLAGS)"
 
 export PATH := $(realpath .)/src/bin:$(PATH)
 
