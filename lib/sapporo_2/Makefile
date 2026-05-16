@@ -8,7 +8,7 @@ all: sapporo2
 
 .DEFAULT_GOAL := all
 
-VERSION := eeac0835f80d6e0e8ca778bdea4dbf3ae799ca29
+VERSION := 7cae51ed1368ea457fb5f3ca01b4775f7558a9e7
 
 
 # Install into an active venv or Conda env if no location is specified
