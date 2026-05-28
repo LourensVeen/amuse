@@ -103,8 +103,8 @@ test_sapporo2() {
     log_file="$(log_file test sapporo2)"
 
     (
-        ${GMAKE} -C lib/sapporo2 test
-        echo $? >"../../${ec_file}"
+        ${GMAKE} -C lib/sapporo_2 test
+        echo $? >"${ec_file}"
     ) 2>&1 | tee "${log_file}"
 
     handle_result $(cat "$ec_file") test sapporo2 "${log_file}"

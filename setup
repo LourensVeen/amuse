@@ -190,6 +190,10 @@ run_test() {
             all )
                 test_all
                 ;;
+            sapporo2 )
+                check_package_installed_for_test sapporo2
+                test_sapporo2
+                ;;
             amuse-framework | framework )
                 check_package_installed_for_test amuse-framework
                 test_framework
