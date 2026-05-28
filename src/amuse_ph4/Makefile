@@ -22,7 +22,7 @@ $(CODELIB):
 
 .PHONY: $(CODELIB_SAPPORO)
 $(CODELIB_SAPPORO):
-	$(MAKE) -C src -j $(CPU_COUNT) gpulib CXX='$(MPICXX)' CFLAGS='$(CFLAGS)' SAPPORO_LIBDIRS='$(SAPPORO_LIGHT_CFLAGS)' SAPPORO_LIBS='$(SAPPORO_LIGHT_LIBS)'
+	$(MAKE) -C src -j $(CPU_COUNT) gpulib CXX='$(MPICXX)' CFLAGS='$(CFLAGS)'
 
 
 # Building the workers
@@ -42,6 +42,9 @@ ph4_worker: ph4_worker.o interface.o $(CODELIB)
 ph4_sapporo_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
 	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS) $(SAPPORO_LIGHT_LIBS)
 
+ph4_sapporo2_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
+	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS) -lsapporoG6 $(SAPPORO2_LIBS)
+
 %.o: %.cc
 	$(MPICXX) -o $@ -c $(CFLAGS) $<
 
@@ -50,6 +53,8 @@ ph4_sapporo_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
 amuse-ph4_contains: ph4_worker
 
 amuse-ph4-sapporo_contains: ph4_sapporo_worker
+
+amuse-ph4-sapporo2_contains: ph4_sapporo2_worker
 
 
 # Building and installing packages
