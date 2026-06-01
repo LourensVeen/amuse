@@ -39,9 +39,6 @@ ph4_worker.o: ph4_worker.cc ph4_worker.h
 ph4_worker: ph4_worker.o interface.o $(CODELIB)
 	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS)
 
-ph4_sapporo_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
-	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS) $(SAPPORO_LIGHT_LIBS)
-
 ph4_sapporo2_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
 	$(MPICXX) -o $@ $(LDFLAGS) $^ $(LDLIBS) -lsapporoG6 $(SAPPORO2_LIBS)
 
@@ -51,8 +48,6 @@ ph4_sapporo2_worker: ph4_worker.o interface.o $(CODELIB_SAPPORO)
 
 # Which packages contain which workers?
 amuse-ph4_contains: ph4_worker
-
-amuse-ph4-sapporo_contains: ph4_sapporo_worker
 
 amuse-ph4-sapporo2_contains: ph4_sapporo2_worker
 
